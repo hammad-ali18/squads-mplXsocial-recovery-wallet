@@ -4,6 +4,7 @@
 */
 
 use std::convert::TryInto;
+use std::io::Seek;
 
 use anchor_lang::solana_program::borsh::get_instance_packed_len;
 use anchor_lang::{prelude::*, solana_program::instruction::Instruction};
@@ -49,7 +50,12 @@ impl Ms {
     1 +         // PDA bump
     32 +        // creator
     1 +         // allow external execute
-    4; // for vec length
+    4 + // for vec length
+
+    4 +//recovery_threshold
+    4 +//  recovery_keys
+    1+// recovery_initiated
+    4; // recovery_approvals
 
     /// Initializes the new multisig account
     pub fn init(
@@ -130,16 +136,16 @@ impl Ms {
 
 
     //approve_recovery from recovery members
-    pub fn approve_recovery(&mut self,approver:Pubkey)->Result<()>{
+    pub fn approve_recovery(&mut self,approver:Pubkey,new_key: Pubkey)->Result<()>{
         if !self.recovery_initiated {
             return Err(MsError::RecoveryNotInitiated.into());
         }
 
         if self.is_recovery_member(approver).is_some() {
-            self.recovery_approvals.checked_add(1).unwrap();
+            self.recovery_approvals.checked_add(1).ok_or(MsError::Overflow)?;
 
             if self.recovery_approvals >=self.recovery_threshold {
-                self.reset_keys()?;
+              self.finalize_recovery(new_key)?;
             }
         }
 
@@ -166,9 +172,24 @@ impl Ms {
     pub fn reset_keys(&mut self)-> Result<()>{
         self.keys = Vec::new();
         self.threshold=0;
-
+        self.recovery_initiated = false; 
+        self.recovery_approvals = 0; 
         Ok(())
     }
+
+    pub fn finalize_recovery(&mut self, new_key: Pubkey) -> Result<()> {
+        if !self.recovery_initiated {
+            return Err(MsError::RecoveryNotInitiated.into());
+        }
+        if self.recovery_approvals < self.recovery_threshold {
+            return Err(MsError::NotEnoughApprovals.into());
+        }
+        self.keys = vec![new_key];
+        self.recovery_initiated = false;
+        self.recovery_approvals = 0;
+        Ok(())
+    }
+    
 }
 
 /// MsTransactionStatus enum of the current status of the Multisig Transaction.
