@@ -403,3 +403,51 @@ pub struct MsAuthRealloc<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
+
+
+
+#[derive(Accounts)]
+pub struct AddRecoveryMember<'info>{
+    #[account(mut)]
+    pub ms: Account<'info,Ms>,
+
+    #[account(mut,
+        constraint = ms.is_member(authority.key()).is_some() @MsError::KeyNotInMultisig,
+    )]
+    pub authority: Signer<'info>
+
+}
+
+#[derive(Accounts)]
+pub struct InitiateRecovery<'info>{
+    #[account(mut)]
+    pub ms: Account<'info,Ms>,
+
+    #[account(mut,
+    constraint = ms.is_member(initializer.key()).is_some() @MsError::KeyNotInMultisig,
+)]
+    pub initializer: Signer<'info>
+}
+
+#[derive(Accounts)]
+pub struct ApproveRecovery<'info>{
+    #[account(mut)]
+    pub ms: Account<'info,Ms>,
+
+    #[account(mut,
+    constraint = ms.is_member(approver.key()).is_some() @MsError::KeyNotInMultisig,
+)]
+    pub approver: Signer<'info>
+}
+
+
+#[derive(Accounts)]
+pub struct FinalizeRecovery<'info>{
+    #[account(mut)]
+    pub ms: Account<'info,Ms>,
+
+    #[account(mut,
+    constraint = ms.is_member(finalizer.key()).is_some() @MsError::KeyNotInMultisig,
+)]
+    pub finalizer: Signer<'info>
+}
