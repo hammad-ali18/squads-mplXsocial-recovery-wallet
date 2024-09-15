@@ -2,7 +2,9 @@
     Squads Multisig Program - Program & Instructions
     https://github.com/squads-protocol/squads-mpl
 */
-
+// use solana_sdk::{
+//     pubkey::Pubkey
+// };
 use anchor_lang::{
     prelude::*,
     solana_program::{
@@ -205,6 +207,32 @@ pub mod squads_mpl {
         // update the change index to deprecate any active transactions
         ctx.accounts.multisig.set_change_index(new_index)
     }
+
+
+    //SRW features
+    pub fn add_recovery_member(ctx:Context<AddRecoveryMember>, member:Pubkey)-> Result<()>{
+
+        let ms = &mut ctx.accounts.ms;
+        ms.add_member_to_recover_wallet(member)?;
+
+        Ok(())
+    }
+    pub fn initiate_recovery(ctx: Context<InitiateRecovery>,iniater:Pubkey)->Result<()>{
+        let ms = &mut ctx.accounts.ms;
+        ms.initiate_recovery(iniater)?;
+        Ok(())
+    }
+    pub fn approve_recovery(ctx:Context<ApproveRecovery>,approver:Pubkey,new_key:Pubkey)->Result<()>{
+        let ms = &mut ctx.accounts.ms;
+        ms.approve_recovery(approver, new_key)?;
+        Ok(())
+    }
+    pub fn finalize_recovery(ctx: Context<FinalizeRecovery>, new_key: Pubkey) -> Result<()> {
+        let ms = &mut ctx.accounts.ms;
+        ms.finalize_recovery(new_key)?;
+        Ok(())
+    }
+
 
     /// instruction to increase the authority value tracked in the multisig
     /// This is optional, as authorities are simply PDAs, however it may be helpful
@@ -582,5 +610,18 @@ pub mod squads_mpl {
             ctx.accounts.transaction.set_executed()?;
         }
         Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use solana_program_test::tokio;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_create_multisig() {
+    // let program_id = 
     }
 }
